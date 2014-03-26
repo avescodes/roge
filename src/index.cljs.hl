@@ -1,0 +1,41 @@
+(page "index.html"
+  (:require [cljs.core.async :as async])
+  (:require-macros [cljs.core.async.macros :refer [go-loop]]))
+
+(def code->key
+  "map from a character code (read from events with event.which)
+  to a string representation of it.
+  Only need to add 'special' things here."
+  {13 :enter
+   37 :left
+   38 :up
+   39 :right
+   40 :down})
+
+(defc game {:grid [[0 0 0]
+                   [0 0 0]
+                   [0 0 0]]
+            :player {:pos [1 1]}})
+
+(def input-ch (async/chan 10))
+
+(go-loop []
+         (let [keycode (async/<! input-ch)]
+           (swap! game update-in [:player :pos 0] dec)
+           (recur)))
+
+(defc= last-input (:input game))
+(defc= grid (:grid game))
+(defc= player (:player game))
+(defc= board (assoc-in grid (:pos player) "X"))
+
+(html
+  (head
+    (link :rel "stylesheet" :type "text/css" :href "css/main.css"))
+  (body :keyup (fn [event] (async/put! input-ch (.-keyCode event)))
+    (h1 "Welcome to the game!")
+    (p (text "Last input key code: ~{last-input}"))
+    (ul
+      (loop-tpl :bindings [row board]
+        (li (text "~{row}"))))
+  ))
